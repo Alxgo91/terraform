@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fiche de révision — Chapitre 6 : AWS IAM (identités, groupes, rôles, politiques, responsabilité partagée, bonnes pratiques).">
+<title>AWS IAM · Fiche de révision — Chapitre 6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E141D;
+    --panel:#151E2B;
+    --panel-2:#1B2738;
+    --ink:#232F3E;            /* squid ink AWS */
+    --line:rgba(232,237,244,.08);
+    --line-strong:rgba(232,237,244,.16);
+    --orange:#FF9900;          /* orange AWS */
+    --orange-soft:#FFC069;
+    --orange-dim:rgba(255,153,0,.10);
+    --teal:#5BC9E8;
+    --teal-dim:rgba(91,201,232,.09);
+    --green:#7ED99B;
+    --amber:#FFC857;
+    --text:#E8EDF4;
+    --muted:#93A2B5;
+    --radius:14px;
+    --font-display:"Space Grotesk",system-ui,sans-serif;
+    --font-body:"IBM Plex Sans",system-ui,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--orange);color:#10161F}
+  a{color:var(--teal)}
+  :focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:4px}
+
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  /* ── Barre console ─────────────────────────── */
+  .consolebar{
+    border-bottom:1px solid var(--line);
+    background:rgba(14,20,29,.85);
+    backdrop-filter:blur(6px);
+    position:sticky;top:0;z-index:10;
+  }
+  .consolebar-in{
+    max-width:1060px;margin:0 auto;padding:10px 24px;
+    display:flex;align-items:center;gap:12px;
+    font-family:var(--font-mono);font-size:.78rem;color:var(--muted);
+  }
+  .aws-chip{
+    background:var(--orange);color:#16110A;font-weight:600;
+    padding:2px 8px;border-radius:6px;letter-spacing:.04em;
+  }
+  .crumb-sep{color:var(--orange)}
+  .consolebar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(126,217,155,.8)}
+  @media(max-width:620px){.crumb-hide{display:none}}
+
+  /* ── Héro ─────────────────────────────────── */
+  .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(232,237,244,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(232,237,244,.045) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 10%,black 25%,transparent 78%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 10%,black 25%,transparent 78%);
+    pointer-events:none;
+  }
+  .hero::after{
+    content:"";position:absolute;width:620px;height:620px;right:-180px;top:-220px;
+    background:radial-gradient(circle,rgba(255,153,0,.17),transparent 64%);
+    pointer-events:none;
+  }
+  .hero-in{position:relative;padding:88px 0 72px;text-align:left}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:.74rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--orange);
+    display:inline-flex;align-items:center;gap:10px;margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--orange)}
+  h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(3.2rem,10vw,6.8rem);line-height:.98;letter-spacing:-.025em;
+  }
+  h1 .h1-iam{color:var(--orange);text-shadow:0 0 44px rgba(255,153,0,.35)}
+  .hero-tag{
+    margin-top:24px;max-width:560px;font-size:1.12rem;color:var(--muted);
+  }
+  .hero-tag strong{color:var(--text);font-weight:600}
+  .hero-q{
+    font-family:var(--font-display);font-weight:500;color:var(--text);
+    font-size:clamp(1.15rem,2.6vw,1.5rem);margin-top:14px;
+  }
+  .hero-q em{font-style:normal;color:var(--orange)}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+  .chip{
+    font-family:var(--font-mono);font-size:.74rem;letter-spacing:.05em;
+    border:1px solid var(--line-strong);color:var(--muted);
+    padding:6px 12px;border-radius:999px;
+  }
+  .chip--free{border-color:rgba(126,217,155,.45);color:var(--green)}
+
+  /* ── Sections génériques ──────────────────── */
+  section{padding:64px 0}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:10px}
+  .sec-num{
+    font-family:var(--font-mono);font-size:.78rem;color:var(--orange);
+    letter-spacing:.18em;white-space:nowrap;
+  }
+  .sec-rule{flex:1;height:1px;background:var(--line)}
+  h2{
+    font-family:var(--font-display);font-weight:700;
+    font-size:clamp(1.6rem,3.6vw,2.2rem);letter-spacing:-.015em;
+    margin-bottom:14px;
+  }
+  .sec-intro{color:var(--muted);max-width:640px;margin-bottom:34px}
+  .sec-intro strong{color:var(--text)}
+
+  /* ── §1 Responsabilité partagée ───────────── */
+  .split{
+    display:grid;grid-template-columns:1fr 1fr;
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    overflow:hidden;background:var(--panel);
+  }
+  .split-col{padding:30px 30px 26px}
+  .split-col--aws{border-right:1px solid var(--line-strong);background:linear-gradient(180deg,var(--teal-dim),transparent 60%)}
+  .split-col--vous{background:linear-gradient(180deg,var(--orange-dim),transparent 60%)}
+  .split-kicker{
+    font-family:var(--font-mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;margin-bottom:8px;
+  }
+  .split-col--aws .split-kicker{color:var(--teal)}
+  .split-col--vous .split-kicker{color:var(--orange)}
+  .split-title{font-family:var(--font-display);font-weight:700;font-size:1.4rem;margin-bottom:4px}
+  .split-title .du{color:var(--teal)}
+  .split-title .dans{color:var(--orange)}
+  .split-sub{font-size:.88rem;color:var(--muted);margin-bottom:20px}
+  .split-list{list-style:none;display:grid;gap:12px}
+  .split-list li{display:flex;gap:12px;align-items:flex-start;font-size:.97rem}
+  .split-list svg{flex:none;margin-top:3px}
+  .split-foot{
+    border-top:1px solid var(--line-strong);
+    display:grid;grid-template-columns:1fr 1fr;grid-column:1 / -1;
+  }
+  .case{padding:18px 30px;font-size:.9rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start}
+  .case + .case{border-left:1px solid var(--line-strong)}
+  .case b{color:var(--text);font-weight:600}
+  .case .verdict{font-family:var(--font-mono);font-size:.72rem;padding:2px 8px;border-radius:6px;white-space:nowrap;margin-top:2px}
+  .verdict--vous{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,153,0,.35)}
+  .verdict--aws{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(91,201,232,.35)}
+  .memo{
+    margin-top:22px;text-align:center;font-family:var(--font-display);
+    font-size:clamp(1rem,2.4vw,1.25rem);font-weight:500;color:var(--muted);
+  }
+  .memo .du{color:var(--teal);font-weight:700}
+  .memo .dans{color:var(--orange);font-weight:700}
+
+  /* ── §2 Définition IAM ────────────────────── */
+  .videur{
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:linear-gradient(135deg,var(--panel-2),var(--panel));
+    padding:40px;display:grid;grid-template-columns:auto 1fr;gap:30px;align-items:center;
+    position:relative;overflow:hidden;
+  }
+  .videur::after{
+    content:"IAM";position:absolute;right:18px;bottom:-30px;
+    font-family:var(--font-display);font-weight:700;font-size:9rem;
+    color:rgba(232,237,244,.035);letter-spacing:-.04em;pointer-events:none;
+  }
+  .videur-badge{
+    width:92px;height:92px;border-radius:20px;flex:none;
+    background:var(--orange-dim);border:1px solid rgba(255,153,0,.4);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .videur h3{font-family:var(--font-display);font-size:1.45rem;font-weight:700;margin-bottom:8px}
+  .videur h3 .q{color:var(--orange)}
+  .videur p{color:var(--muted);max-width:620px}
+  .videur p strong{color:var(--text)}
+  .tag-free{
+    display:inline-block;margin-left:10px;vertical-align:middle;
+    font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;
+    color:var(--green);border:1px solid rgba(126,217,155,.45);
+    padding:2px 8px;border-radius:6px;
+  }
+
+  /* ── §3 Entités ───────────────────────────── */
+  .grid-entites{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  .card{
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:var(--panel);padding:26px;
+    transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
+  }
+  .card:hover{transform:translateY(-3px);border-color:rgba(255,153,0,.5);box-shadow:0 12px 32px rgba(0,0,0,.35)}
+  .card-top{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .card-ico{
+    width:46px;height:46px;border-radius:12px;flex:none;
+    background:var(--orange-dim);border:1px solid rgba(255,153,0,.3);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card h3{font-family:var(--font-display);font-size:1.18rem;font-weight:700;line-height:1.2}
+  .card h3 small{
+    display:block;font-family:var(--font-mono);font-weight:500;
+    font-size:.7rem;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:2px;
+  }
+  .badge{
+    font-family:var(--font-mono);font-size:.64rem;letter-spacing:.12em;
+    padding:3px 8px;border-radius:6px;margin-left:auto;white-space:nowrap;
+  }
+  .badge--temp{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(91,201,232,.4)}
+  .badge--json{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,153,0,.4)}
+  .card p{font-size:.95rem;color:var(--muted)}
+  .card p strong{color:var(--text)}
+  .card-foot{
+    margin-top:16px;padding-top:14px;border-top:1px dashed var(--line-strong);
+    font-size:.84rem;color:var(--muted);display:flex;gap:8px;align-items:flex-start;
+  }
+  .card-foot svg{flex:none;margin-top:3px}
+
+  /* Flux exemple */
+  .flow-wrap{
+    margin-top:26px;border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:var(--panel-2);padding:28px;
+  }
+  .flow-label{
+    font-family:var(--font-mono);font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--green);margin-bottom:18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .flow-label::before{content:"";width:20px;height:1px;background:var(--green)}
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:nowrap}
+  .flow-node{
+    flex:1;border:1px solid var(--line-strong);border-radius:12px;
+    background:var(--panel);padding:16px 18px;text-align:center;
+  }
+  .flow-node b{display:block;font-family:var(--font-display);font-size:.98rem;margin-bottom:2px}
+  .flow-node span{font-size:.8rem;color:var(--muted)}
+  .flow-arrow{
+    flex:none;align-self:center;padding:0 14px;
+    font-family:var(--font-mono);font-size:.7rem;color:var(--orange);
+    text-align:center;letter-spacing:.06em;
+  }
+  .flow-arrow .ar{display:block;font-size:1.1rem;line-height:1;margin-top:2px}
+  .flow-note{margin-top:16px;font-size:.88rem;color:var(--muted);text-align:center}
+  .flow-note strong{color:var(--text)}
+
+  /* ── §4 Bonnes pratiques ──────────────────── */
+  .bp-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:start}
+  .bp-defs{display:grid;gap:14px}
+  .bp-def{
+    border:1px solid var(--line-strong);border-left:3px solid var(--orange);
+    border-radius:10px;background:var(--panel);padding:18px 20px;
+  }
+  .bp-def h4{font-family:var(--font-display);font-size:1.02rem;font-weight:700;margin-bottom:4px}
+  .bp-def h4 small{font-family:var(--font-mono);font-weight:500;font-size:.68rem;color:var(--muted);letter-spacing:.1em;margin-left:8px}
+  .bp-def p{font-size:.89rem;color:var(--muted)}
+  .bp-def p strong{color:var(--text)}
+  .checklist{
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:var(--panel);padding:24px 26px;
+  }
+  .checklist h4{
+    font-family:var(--font-mono);font-size:.72rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--green);margin-bottom:18px;
+  }
+  .checklist ol{list-style:none;display:grid;gap:14px;counter-reset:cl}
+  .checklist li{display:flex;gap:14px;align-items:flex-start;font-size:.95rem}
+  .checklist li::before{
+    counter-increment:cl;content:counter(cl,decimal-leading-zero);
+    font-family:var(--font-mono);font-size:.72rem;color:var(--orange);
+    border:1px solid rgba(255,153,0,.4);border-radius:7px;
+    padding:3px 7px;flex:none;margin-top:1px;
+  }
+  .checklist li strong{color:var(--text)}
+  .checklist li span{color:var(--muted)}
+  .vigilance{
+    margin-top:18px;border:1px solid rgba(255,200,87,.4);border-radius:var(--radius);
+    background:rgba(255,200,87,.06);padding:22px 26px;
+    display:flex;gap:16px;align-items:flex-start;
+  }
+  .vigilance svg{flex:none;margin-top:2px}
+  .vigilance b{color:var(--amber);font-family:var(--font-mono);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;display:block;margin-bottom:6px}
+  .vigilance p{font-size:.93rem;color:var(--text)}
+  .vigilance p strong{color:var(--amber)}
+
+  /* ── §5 À retenir (JSON) ──────────────────── */
+  .json-window{
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    background:#0B1019;overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  .json-bar{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 18px;border-bottom:1px solid var(--line);
+    font-family:var(--font-mono);font-size:.74rem;color:var(--muted);
+    background:var(--panel);
+  }
+  .json-bar .file-dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+  .json-bar .right{margin-left:auto;color:var(--green)}
+  .json-body{padding:26px 28px;overflow-x:auto}
+  .json-body pre{
+    font-family:var(--font-mono);font-size:.86rem;line-height:1.75;
+    color:var(--muted);min-width:560px;
+  }
+  .j-key{color:var(--teal)}
+  .j-str{color:var(--orange-soft)}
+  .j-allow{color:var(--green);font-weight:600}
+  .j-pun{color:#5B6B80}
+
+  /* ── Pied de page ─────────────────────────── */
+  footer{
+    border-top:1px solid var(--line);padding:34px 0 46px;
+    font-family:var(--font-mono);font-size:.74rem;color:var(--muted);
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;
+  }
+  footer .f-orange{color:var(--orange)}
+
+  /* ── Révélation au scroll ─────────────────── */
+  .will-reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease}
+  .will-reveal.in{opacity:1;transform:none}
+  .grid-entites .card:nth-child(2){transition-delay:.07s}
+  .grid-entites .card:nth-child(3){transition-delay:.14s}
+  .grid-entites .card:nth-child(4){transition-delay:.21s}
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .will-reveal{opacity:1;transform:none;transition:none}
+    .card{transition:none}
+  }
+
+  /* ── Responsive ───────────────────────────── */
+  @media(max-width:820px){
+    .bp-grid{grid-template-columns:1fr}
+  }
+  @media(max-width:760px){
+    section{padding:48px 0}
+    .hero-in{padding:64px 0 56px}
+    .split{grid-template-columns:1fr}
+    .split-col--aws{border-right:none;border-bottom:1px solid var(--line-strong)}
+    .split-foot{grid-template-columns:1fr}
+    .case + .case{border-left:none;border-top:1px solid var(--line-strong)}
+    .grid-entites{grid-template-columns:1fr}
+    .videur{grid-template-columns:1fr;padding:28px}
+    .flow{flex-direction:column}
+    .flow-arrow{padding:10px 0}
+    .flow-arrow .ar{transform:rotate(90deg)}
+    .json-body pre{min-width:0;font-size:.78rem}
+  }
+</style>
+</head>
+<body>
+
+<!-- Barre console -->
+<div class="consolebar">
+  <div class="consolebar-in">
+    <span class="aws-chip">AWS</span>
+    <span class="crumb-hide">console</span>
+    <span class="crumb-sep">▸</span>
+    <span>IAM</span>
+    <span class="crumb-sep">▸</span>
+    <span>fiche-de-révision</span>
+    <span class="consolebar-right"><span class="dot-live"></span><span class="crumb-hide">chapitre 6 / 6</span></span>
+  </div>
+</div>
+
+<!-- Héro -->
+<header class="hero">
+  <div class="wrap hero-in">
+    <p class="eyebrow">Panorama Cloud AWS · Chapitre 6 · Fiche de révision</p>
+    <h1>AWS <span class="h1-iam">IAM</span></h1>
+    <p class="hero-q">Le service qui décide <em>« qui a le droit de faire quoi »</em>.</p>
+    <p class="hero-tag"><strong>Identity &amp; Access Management</strong> — le « videur » du cloud : il contrôle l'entrée de chaque service, gère les identités et distribue les permissions.</p>
+    <div class="chips">
+      <span class="chip chip--free">SERVICE GRATUIT</span>
+      <span class="chip">IDENTITÉS</span>
+      <span class="chip">PERMISSIONS</span>
+      <span class="chip">IPSSI · AWS ACADEMY · 2026</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- §1 Responsabilité partagée -->
+  <section id="responsabilite">
+    <div class="sec-head"><span class="sec-num">§ 01</span><span class="sec-rule"></span></div>
+    <h2 data-reveal>Le modèle de responsabilité partagée</h2>
+    <p class="sec-intro" data-reveal>La sécurité est <strong>répartie clairement</strong> entre AWS et vous. Chacun son périmètre — et en cas d'incident, on sait qui est responsable.</p>
+
+    <div class="split" data-reveal>
+      <div class="split-col split-col--aws">
+        <p class="split-kicker">Responsabilité AWS</p>
+        <p class="split-title">Sécurité <span class="du">DU</span> cloud</p>
+        <p class="split-sub">L'infrastructure qui fait tourner le cloud.</p>
+        <ul class="split-list">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5BC9E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3 8-10V6l-8-3-8 3v6c0 7 8 10 8 10z"/></svg>Datacenters &amp; matériel physique</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5BC9E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3 8-10V6l-8-3-8 3v6c0 7 8 10 8 10z"/></svg>Réseau physique &amp; hyperviseur</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5BC9E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3 8-10V6l-8-3-8 3v6c0 7 8 10 8 10z"/></svg>Maintenance de l'infrastructure</li>
+        </ul>
+      </div>
+      <div class="split-col split-col--vous">
+        <p class="split-kicker">Votre responsabilité</p>
+        <p class="split-title">Sécurité <span class="dans">DANS</span> le cloud</p>
+        <p class="split-sub">Tout ce que vous mettez et configurez dedans.</p>
+        <ul class="split-list">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Vos données &amp; leur chiffrement</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Utilisateurs &amp; permissions <strong>(IAM)</strong></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Pare-feu : <strong>Security Groups</strong></li>
+        </ul>
+      </div>
+      <div class="split-foot">
+        <div class="case">
+          <span class="verdict verdict--vous">→ VOUS</span>
+          <span>Mot de passe faible, <b>bucket S3 laissé public</b>, données piratées : c'est votre configuration, donc <b>votre responsabilité</b>.</span>
+        </div>
+        <div class="case">
+          <span class="verdict verdict--aws">→ AWS</span>
+          <span><b>Panne matérielle</b> dans un datacenter : c'est l'infrastructure, donc <b>à AWS de gérer</b>.</span>
+        </div>
+      </div>
+    </div>
+    <p class="memo" data-reveal>Moyen mnémo : sécurité <span class="du">DU</span> cloud = AWS · sécurité <span class="dans">DANS</span> le cloud = vous.</p>
+  </section>
+
+  <!-- §2 Qu'est-ce qu'IAM -->
+  <section id="definition">
+    <div class="sec-head"><span class="sec-num">§ 02</span><span class="sec-rule"></span></div>
+    <h2 data-reveal>Qu'est-ce qu'IAM ?</h2>
+
+    <div class="videur" data-reveal>
+      <div class="videur-badge">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5"/><circle cx="12" cy="15.5" r=".8" fill="#FF9900" stroke="none"/><path d="M8.5 4.5 12 3l3.5 1.5"/></svg>
+      </div>
+      <div>
+        <h3>Le <span class="q">« videur »</span> du compte AWS <span class="tag-free">100 % GRATUIT</span></h3>
+        <p><strong>IAM (Identity and Access Management)</strong> gère les identités et les autorisations : il permet de <strong>créer des utilisateurs</strong>, de <strong>les regrouper</strong> et de <strong>définir précisément ce que chacun peut faire</strong>. Avant chaque action sur un service, c'est lui qui contrôle l'entrée.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- §3 Les 4 entités -->
+  <section id="entites">
+    <div class="sec-head"><span class="sec-num">§ 03</span><span class="sec-rule"></span></div>
+    <h2 data-reveal>Les 4 entités d'IAM</h2>
+    <p class="sec-intro" data-reveal>Quatre briques à connaître par cœur — trois identités, et le document JSON qui leur donne (ou refuse) des droits.</p>
+
+    <div class="grid-entites">
+      <div class="card" data-reveal>
+        <div class="card-top">
+          <div class="card-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"/></svg></div>
+          <h3>Utilisateur<small>User</small></h3>
+        </div>
+        <p>Une identité pour <strong>une personne ou une application</strong>, avec ses propres identifiants.</p>
+        <div class="card-foot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7ED99B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>1 collaborateur = 1 utilisateur. Jamais de compte partagé.</div>
+      </div>
+
+      <div class="card" data-reveal>
+        <div class="card-top">
+          <div class="card-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.2 2.7-5 6-5s6 1.8 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.6c2.7.3 4.5 1.9 4.5 4.4"/></svg></div>
+          <h3>Groupe<small>Group</small></h3>
+        </div>
+        <p>Un <strong>ensemble d'utilisateurs</strong> qui reçoivent les mêmes permissions <strong>en une seule fois</strong>.</p>
+        <div class="card-foot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7ED99B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Bien plus simple que de gérer les droits un par un.</div>
+      </div>
+
+      <div class="card" data-reveal>
+        <div class="card-top">
+          <div class="card-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/><path d="M12 8v4l2.5 2.5"/></svg></div>
+          <h3>Rôle<small>Role</small></h3>
+          <span class="badge badge--temp">TEMPORAIRE</span>
+        </div>
+        <p>Des permissions <strong>endossées le temps d'une tâche</strong> par un utilisateur, une appli ou un service AWS — <strong>sans identifiants permanents</strong>.</p>
+        <div class="card-foot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7ED99B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Idéal pour donner des droits à une instance EC2 ou à un service.</div>
+      </div>
+
+      <div class="card" data-reveal>
+        <div class="card-top">
+          <div class="card-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="M10 13c-1 .5-1 2 0 2.5M14 13c1 .5 1 2 0 2.5"/></svg></div>
+          <h3>Politique<small>Policy</small></h3>
+          <span class="badge badge--json">JSON</span>
+        </div>
+        <p>Le <strong>document JSON</strong> qui décrit les autorisations : quelles <strong>actions</strong> sont permises ou refusées, sur quelles <strong>ressources</strong>.</p>
+        <div class="card-foot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7ED99B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>S'attache à un utilisateur, un groupe ou un rôle.</div>
+      </div>
+    </div>
+
+    <div class="flow-wrap" data-reveal>
+      <p class="flow-label">Exemple du cours</p>
+      <div class="flow">
+        <div class="flow-node"><b>Politique</b><span>« Lecture seule sur S3 »</span></div>
+        <div class="flow-arrow">attachée à<span class="ar">→</span></div>
+        <div class="flow-node"><b>Groupe « Développeurs »</b><span>un seul réglage</span></div>
+        <div class="flow-arrow">héritent<span class="ar">→</span></div>
+        <div class="flow-node"><b>3 utilisateurs</b><span>✓ &nbsp;✓ &nbsp;✓</span></div>
+      </div>
+      <p class="flow-note">Les trois utilisateurs reçoivent le droit <strong>automatiquement</strong> — zéro configuration individuelle.</p>
+    </div>
+  </section>
+
+  <!-- §4 Bonnes pratiques -->
+  <section id="pratiques">
+    <div class="sec-head"><span class="sec-num">§ 04</span><span class="sec-rule"></span></div>
+    <h2 data-reveal>Bonnes pratiques de sécurité</h2>
+    <p class="sec-intro" data-reveal>Trois notions clés, cinq réflexes à appliquer <strong>dès la création du compte</strong>.</p>
+
+    <div class="bp-grid">
+      <div class="bp-defs" data-reveal>
+        <div class="bp-def">
+          <h4>Compte root <small>LE PROPRIÉTAIRE</small></h4>
+          <p>Créé à l'ouverture du compte, il possède <strong>tous les droits</strong>. À réserver aux <strong>tâches exceptionnelles</strong> — jamais pour l'usage quotidien.</p>
+        </div>
+        <div class="bp-def">
+          <h4>MFA <small>MULTI-FACTOR AUTHENTICATION</small></h4>
+          <p>Mot de passe <strong>+ code temporaire</strong> (appli mobile). Protège le compte <strong>même si le mot de passe est volé</strong>.</p>
+        </div>
+        <div class="bp-def">
+          <h4>Moindre privilège <small>LEAST PRIVILEGE</small></h4>
+          <p>N'accorder que les permissions <strong>strictement nécessaires</strong> à la tâche, rien de plus. Réduit fortement les risques en cas de compromission.</p>
+        </div>
+      </div>
+
+      <div class="checklist" data-reveal>
+        <h4>✓ Checklist dès le jour 1</h4>
+        <ol>
+          <li><span><strong>Sécuriser le root</strong> : mot de passe fort + MFA, puis ne plus l'utiliser au quotidien.</span></li>
+          <li><span><strong>Créer un utilisateur IAM personnel</strong> pour l'administration courante.</span></li>
+          <li><span><strong>Appliquer le moindre privilège</strong> via des politiques précises.</span></li>
+          <li><span><strong>Regrouper les droits</strong> avec des groupes ; utiliser des <strong>rôles</strong> pour les services.</span></li>
+          <li><span><strong>Activer la MFA</strong> pour tous les utilisateurs sensibles.</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="vigilance" data-reveal>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFC857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><circle cx="12" cy="17" r=".8" fill="#FFC857" stroke="none"/></svg>
+      <div>
+        <b>Point de vigilance</b>
+        <p><strong>Jamais de clés d'accès sur le compte root</strong>, et <strong>jamais d'identifiants partagés</strong> entre plusieurs personnes : en cas d'incident, impossible de savoir qui a fait quoi — c'est la <strong>perte de traçabilité</strong>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- §5 À retenir -->
+  <section id="retenir">
+    <div class="sec-head"><span class="sec-num">§ 05</span><span class="sec-rule"></span></div>
+    <h2 data-reveal>À retenir — l'essentiel, format politique IAM</h2>
+    <p class="sec-intro" data-reveal>Tout le chapitre tient dans un seul document JSON. Si tu sais relire celui-ci, c'est gagné.</p>
+
+    <div class="json-window" data-reveal>
+      <div class="json-bar"><span class="file-dot"></span>revision-chapitre-6.json<span class="right">✓ valide</span></div>
+      <div class="json-body">
+<pre><span class="j-pun">{</span>
+  <span class="j-key">"Version"</span><span class="j-pun">:</span> <span class="j-str">"chapitre-6"</span><span class="j-pun">,</span>
+  <span class="j-key">"Statement"</span><span class="j-pun">: [</span>
+    <span class="j-pun">{</span> <span class="j-key">"Sid"</span><span class="j-pun">:</span> <span class="j-str">"ResponsabilitePartagee"</span><span class="j-pun">,</span> <span class="j-key">"Effect"</span><span class="j-pun">:</span> <span class="j-allow">"Allow"</span><span class="j-pun">,</span>
+      <span class="j-key">"Resume"</span><span class="j-pun">:</span> <span class="j-str">"AWS sécurise LE cloud · vous sécurisez ce que vous mettez DANS le cloud"</span> <span class="j-pun">},</span>
+    <span class="j-pun">{</span> <span class="j-key">"Sid"</span><span class="j-pun">:</span> <span class="j-str">"ServiceIAM"</span><span class="j-pun">,</span> <span class="j-key">"Effect"</span><span class="j-pun">:</span> <span class="j-allow">"Allow"</span><span class="j-pun">,</span>
+      <span class="j-key">"Resume"</span><span class="j-pun">:</span> <span class="j-str">"IAM (gratuit) gère les identités et les permissions"</span> <span class="j-pun">},</span>
+    <span class="j-pun">{</span> <span class="j-key">"Sid"</span><span class="j-pun">:</span> <span class="j-str">"QuatreEntites"</span><span class="j-pun">,</span> <span class="j-key">"Effect"</span><span class="j-pun">:</span> <span class="j-allow">"Allow"</span><span class="j-pun">,</span>
+      <span class="j-key">"Resume"</span><span class="j-pun">:</span> <span class="j-str">"Utilisateur · Groupe · Rôle (temporaire) · Politique (JSON)"</span> <span class="j-pun">},</span>
+    <span class="j-pun">{</span> <span class="j-key">"Sid"</span><span class="j-pun">:</span> <span class="j-str">"BonnesPratiques"</span><span class="j-pun">,</span> <span class="j-key">"Effect"</span><span class="j-pun">:</span> <span class="j-allow">"Allow"</span><span class="j-pun">,</span>
+      <span class="j-key">"Resume"</span><span class="j-pun">:</span> <span class="j-str">"Protéger le root · activer la MFA · appliquer le moindre privilège"</span> <span class="j-pun">}</span>
+  <span class="j-pun">]</span>
+<span class="j-pun">}</span></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="wrap">
+  <footer>
+    <span>Fiche de révision · <span class="f-orange">Chapitre 6 — AWS IAM</span></span>
+    <span>Panorama Cloud AWS · IPSSI — AWS Academy · 2026</span>
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var els = document.querySelectorAll('[data-reveal]');
+    if (reduce || !('IntersectionObserver' in window)) return;
+    els.forEach(function(el){ el.classList.add('will-reveal'); });
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+
+</body>
+</html>

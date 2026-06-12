@@ -1,0 +1,17 @@
+﻿# --- Terraform ---
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+
+# --- Cles SSH / secrets ---
+*.pem
+*.key
+terraform-ipssi
+terraform-ipssi.pub
+
+# --- Divers ---
+.DS_Store
+*.log

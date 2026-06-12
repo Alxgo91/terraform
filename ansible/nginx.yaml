@@ -1,0 +1,21 @@
+---
+- name: Installation de Engine-X
+  hosts: web
+  become: true #escalade de privilèges activée
+  tasks:
+    - name: installer nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Démarrer et activer nginx
+      service: 
+        name: nginx
+        state: started
+        enabled: true
+    
+    - name: Home Page
+      copy:
+        dest: /var/www/html/index.html
+        src: html/index.html
